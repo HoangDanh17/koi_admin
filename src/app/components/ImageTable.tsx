@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Table, Image, Spin, Modal, Button, Upload, Form, message } from "antd";
 import { PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { ref, listAll, getDownloadURL, uploadBytes } from "firebase/storage";
@@ -18,7 +18,7 @@ const ImageTable: React.FC = () => {
   const [imageData, setImageData] = useState<ImageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [file, setFile] = useState<RcFile | null>(null);
+  const fileRef = useRef<RcFile | null>(null);
 
   useEffect(() => {
     fetchImages();
@@ -48,32 +48,35 @@ const ImageTable: React.FC = () => {
   };
 
   const handleOk = async () => {
-    if (file) {
-      const imageRef = ref(storage, `admin/${file.name}`);
+    if (fileRef.current) {
+      const imageRef = ref(storage, `admin/${fileRef.current.name}`);
       setLoading(true);
-      await uploadBytes(imageRef, file)
-        .then(() => {
-          message.success("Image uploaded successfully");
-          fetchImages();
-        })
-        .catch(() => {
-          message.error("Failed to upload image");
-        });
-      setFile(null);
+      try {
+        await uploadBytes(imageRef, fileRef.current);
+        message.success("Image uploaded successfully");
+        fetchImages(); // Refresh the images list
+        fileRef.current = null; // Clear the file reference
+      } catch (error) {
+        console.error("Upload error:", error);
+        message.error("Failed to upload image");
+      } finally {
+        setLoading(false);
+        setIsModalVisible(false); // Close modal after the upload
+      }
     } else {
       message.warning("Please select an image file.");
     }
-    setIsModalVisible(false);
-    setLoading(false);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
   };
 
-  const handleUploadChange = (info: UploadChangeParam<UploadFile<string>>) => {
-    if (info.file.originFileObj) {
-      setFile(info.file.originFileObj as RcFile);
+  const handleUploadChange = (info: UploadChangeParam<UploadFile<RcFile>>) => {
+    if (info.fileList.length > 0) {
+      fileRef.current = info.fileList[0].originFileObj as RcFile;
+    } else {
+      fileRef.current = null; // Reset if no file selected
     }
   };
 
@@ -114,6 +117,7 @@ const ImageTable: React.FC = () => {
         visible={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
+        okText="Upload"
       >
         <Form layout="vertical">
           <Form.Item label="Select Image">

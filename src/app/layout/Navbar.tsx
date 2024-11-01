@@ -1,20 +1,25 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "antd";
 import MenuIcon from "@/app/Icon/MenuIcon";
 
 const Navbar = () => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const route = useRouter();
 
   const menuItems = [
     { title: "Category", link: "/category" },
     { title: "Blog", link: "/blog" },
     { title: "Image Container", link: "/image" },
-
   ];
+
+  function handleReset() {
+    sessionStorage.removeItem('userData');
+    route.push("/"); 
+  }
 
   return (
     <>
@@ -43,7 +48,7 @@ const Navbar = () => {
 
         <div className="mt-auto">
           <Link
-            href="/login"
+            href="/"
             className="block w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 text-center rounded"
           >
             Log out
@@ -79,12 +84,12 @@ const Navbar = () => {
                 {item.title}
               </Link>
             ))}
-            <Link
-              href="/login"
+            <Button
+              onClick={handleReset}
               className="block w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 text-center rounded"
             >
               Log out
-            </Link>
+            </Button>
           </nav>
         </div>
       )}

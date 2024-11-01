@@ -4,6 +4,9 @@ import { Form, Input, Button, Typography } from "antd";
 import Image from "next/image";
 import backgroundImage from "../assets/background_login.png";
 import { useRouter } from "next/navigation";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useUser } from "@/app/UserContext";
 
 const { Title } = Typography;
 
@@ -15,15 +18,41 @@ interface LoginFormValues {
 const LoginPage = () => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const route = useRouter();
-  
+  const { setUser } = useUser();
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
-  const onFinish = (values: LoginFormValues) => {
-    console.log("🚀 ~ onFinish ~ values:", values);
-    route.push("/admin");
+  const onFinish = async (values: LoginFormValues) => {
+    try {
+      const response = await fetch(
+        "http://api.koistory.site/api/v1/users/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(values),
+        }
+      );
+  
+      const data = await response.json();
+      console.log("🚀 ~ onFinish ~ data:", data)
+  
+      if (response.ok) {
+        toast.success("Login successful!");
+        route.push("/admin");
+        setUser(data.data);
+        sessionStorage.setItem('userData', JSON.stringify(data.data));
+      } else {
+        toast.error(data.log || "Login failed!");
+      }
+    } catch (error) {
+      console.log("🚀 ~ onFinish ~ error:", error);
+      toast.error("An error occurred during login!");
+    }
   };
+  
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -39,10 +68,8 @@ const LoginPage = () => {
           quality={100}
         />
       </div>
-
       <div
-        className={`
-          relative 
+        className={`relative 
           z-10 
           w-full 
           max-w-md 
@@ -124,6 +151,7 @@ const LoginPage = () => {
           </a>
         </div>
       </div>
+      <ToastContainer /> {/* Toast container for rendering notifications */}
     </div>
   );
 };
